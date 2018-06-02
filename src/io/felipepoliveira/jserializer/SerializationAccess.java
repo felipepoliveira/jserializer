@@ -9,8 +9,8 @@ import java.lang.annotation.Target;
 @Target(value = {ElementType.METHOD, ElementType.FIELD})
 public @interface SerializationAccess {
 	
-	public boolean write() default true;
+	public boolean writable() default true;
 	
-	public boolean read() default true;
+	public boolean readable() default true;
 
 }

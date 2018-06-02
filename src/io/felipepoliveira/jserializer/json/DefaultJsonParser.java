@@ -57,7 +57,7 @@ public class DefaultJsonParser implements JsonParser{
 		Object attrVal = null;
 		//If is a string....
 		if(buffer.isOn('"')) {
-			attrVal = buffer.readUntil('"');
+			attrVal = buffer.readUntil('"', true);
 			buffer.next();
 			
 		//If is a object...
@@ -125,7 +125,7 @@ public class DefaultJsonParser implements JsonParser{
 	public JsonAttribute readAttribute(JsonObject object, StringBuffer buffer) throws JsonParseException {
 		//read the content until the next '"'
 		buffer.next();
-		String attrName = buffer.readUntilBefore('"');
+		String attrName = buffer.readUntilBefore('"', true);
 		
 		//Skip the last '"' occurrence
 		buffer.next();

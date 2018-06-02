@@ -86,15 +86,75 @@ public class StringBuffer {
 	}
 	
 	/**
+	 * Move the cursor to the previous character
+	 * @return
+	 */
+	public boolean previous() {
+		cursor--;
+		if(cursor >= 0) {
+			
+			//Check if pass an line break
+			if(current() == '\n') {
+				column = 0;
+				line++;
+			}else {
+				column++;
+			}
+			
+			return true;
+		}else {
+			return false;
+		}
+		
+	}
+	
+	/**
 	 * Return the content of the content based on the current position of the cursor
 	 * until the value before the given occurrence
 	 * @param occurrence
 	 * @return
 	 */
 	public String readUntilBefore(char occurrence) {
+		return readUntilBefore(occurrence, false);
+	}
+	
+	/**
+	 * Return the content of the content based on the current position of the cursor
+	 * until the value before the given occurrence
+	 * @param occurrence
+	 * @param considerEscaped Flag indicating if when the cursor found the occurrence it will be ignored if is escaped
+	 * @return
+	 */
+	public String readUntilBefore(char occurrence, boolean considerEscaped) {
 		StringBuilder strb = new StringBuilder();
 		strb.append(current());
-		while(next() && current() != occurrence) {
+		while(next()) {
+			
+			//If the current character found the occurrence
+			if(current() == occurrence) {
+				
+				//Make the escaped character inclusion algorithm
+				if(considerEscaped) {
+					
+					//If the previous character is an '\' it will be considered escaped
+					boolean isEscaped = false;
+					if(previous() && current() == '\\') {
+						isEscaped = true;
+					}
+					
+					//Return to the current character
+					next();
+					
+					//If found an escape character, break the read
+					if(!isEscaped) {
+						break;
+					}
+					
+				}else{
+					//If the algorithm not consider escaped characters
+					break;
+				}
+			}
 			strb.append(current());
 		}
 		
@@ -103,9 +163,39 @@ public class StringBuffer {
 	}
 	
 	public String readUntil(char occurrence) {
+		return this.readUntil(occurrence, false);
+	}
+	
+	public String readUntil(char occurrence, boolean considerEscaped) {
 		StringBuilder strb = new StringBuilder();
 		strb.append(current());
-		while(next() && current() != occurrence) {
+		while(next()) {
+			
+			//If the current character found the occurrence
+			if(current() == occurrence) {
+				
+				//Make the escaped character inclusion algorithm
+				if(considerEscaped) {
+					
+					//If the previous character is an '\' it will be considered escaped
+					boolean isEscaped = false;
+					if(previous() && current() == '\\') {
+						isEscaped = true;
+					}
+					
+					//Return to the current character
+					next();
+					
+					//If found an escape character, break the read
+					if(!isEscaped) {
+						break;
+					}
+					
+				}else{
+					//If the algorithm not consider escaped characters
+					break;
+				}
+			}
 			strb.append(current());
 		}
 		

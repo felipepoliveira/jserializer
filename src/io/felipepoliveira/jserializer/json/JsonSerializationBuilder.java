@@ -1,5 +1,9 @@
 package io.felipepoliveira.jserializer.json;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 import io.felipepoliveira.jserializer.SerializationBuilder;
 import io.felipepoliveira.jserializer.exceptions.JfoParseException;
 import io.felipepoliveira.jserializer.exceptions.JsonParseException;
@@ -36,8 +40,10 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 	 * @throws JfoParseException - If the extracted object is a invalid JFO 
 	 * @throws JsonParseException - If the given JSON from jfo parameters is a invalid JSON
 	 */
-	public void withJfo(String jfo) throws JfoParseException, JsonParseException {
+	public JsonSerializationBuilder withJfo(String jfo) throws JfoParseException, JsonParseException {
 		this.jfo = serializer.parseJfo(jfo);
+		
+		return this;
 	}
 	
 	public JfoObject parseJfo(String jfo) {
@@ -48,16 +54,20 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 	 * Defines the JSON Filter Object used to serialize the object
 	 * @param jfo
 	 */
-	public void withJfo(JfoObject jfo) {
+	public JsonSerializationBuilder withJfo(JfoObject jfo) {
 		this.jfo = jfo;
+		
+		return this;
 	}
 	
 	/**
 	 * Specify the fields used to serialize the object
 	 * @param fields
 	 */
-	public void withFields(String...fields) {
+	public JsonSerializationBuilder withFields(String...fields) {
 		parameters.setFields(fields);
+		
+		return this;
 	}
 	
 	/**
@@ -92,6 +102,64 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 	private void applyJfoInSerializationParameters() {
 		if(this.jfo != null) {
 			
+			if(!this.parameters.hasFields()) {
+				parameters.setType(jfo.getFieldFilterAsJsonFieldAccessType());
+				parameters.setFields(jfo.getFilteredFields());
+			}
+			else if(this.parameters.getType() == JsonFieldAccesTypes.INCLUDE) {
+				
+				if(jfo.getFieldFilter() == JfoFieldFilters.REQUIRE) {
+					removeFromParametersIfNotExistsInJfo();
+				}
+				else if(jfo.getFieldFilter() == JfoFieldFilters.EXCLUDE) {
+					removeFromParametersIfExistsInJfo();
+				}
+				
+			}
+			else if (this.parameters.getType() == JsonFieldAccesTypes.EXCLUDE) {
+				if(jfo.getFieldFilter() == JfoFieldFilters.REQUIRE) {
+					parameters.setType(JsonFieldAccesTypes.INCLUDE);
+					addInParametersIfExistsOnlyInJfo();
+					
+				}
+				else if(jfo.getFieldFilter() == JfoFieldFilters.EXCLUDE) {
+					parameters.getFields().addAll(jfo.getFilteredFields());
+				}
+			}
+		}
+	}
+	
+	private void addInParametersIfExistsOnlyInJfo() {
+		Set<String> fields = new HashSet<>();
+		fields.addAll(jfo.getFilteredFields());
+		for (String jfoField : jfo.getFilteredFields()) {
+			
+			if(parameters.getFields().contains(jfoField)) {
+				fields.remove(jfoField);
+			}
+			
+		}
+		
+		parameters.setFields(fields);
+	}
+	
+	private void removeFromParametersIfNotExistsInJfo() {
+		Iterator<String> iterator = parameters.getFields().iterator();
+		String field = null;
+		while(iterator.hasNext() && (field = iterator.next()) != null) {
+			if(!jfo.getFilteredFields().contains(field)) {
+				iterator.remove();
+			}
+		}
+	}
+	
+	private void removeFromParametersIfExistsInJfo() {
+		Iterator<String> iterator = parameters.getFields().iterator();
+		String field = null;
+		while(iterator.hasNext() && (field = iterator.next()) != null) {
+			if(jfo.getFilteredFields().contains(field)) {
+				iterator.remove();
+			}
 		}
 	}
 }

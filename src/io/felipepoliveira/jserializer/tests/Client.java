@@ -8,7 +8,7 @@ public class Client extends People{
 	
 	private Address address;
 	
-	@SerializationAccess(read = false)
+	@SerializationAccess(readable = false)
 	private Object[] children = new Object[5];
 	
 	public Client() {

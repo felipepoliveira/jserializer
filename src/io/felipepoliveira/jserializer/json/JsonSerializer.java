@@ -8,7 +8,6 @@ import io.felipepoliveira.jserializer.ClassMetadataContext;
 import io.felipepoliveira.jserializer.SerializationField;
 import io.felipepoliveira.jserializer.exceptions.JsonParseException;
 import io.felipepoliveira.jserializer.exceptions.UnreadableFieldException;
-import io.felipepoliveira.jserializer.utils.ReflectionUtils;
 
 public class JsonSerializer{
 	
@@ -36,7 +35,7 @@ public class JsonSerializer{
 	public static void jsonObjectToObject(JsonObject jsonObject, Object object) {
 		
 		//Get the object metadata
-		ClassMetadata metadata = ClassMetadataContext.metadatas.get(object.getClass());
+		ClassMetadata metadata = ClassMetadataContext.get(object.getClass());
 		
 		//get each field of the object
 		for (String fname : metadata.getFields().keySet()) {
@@ -52,13 +51,27 @@ public class JsonSerializer{
 			//get the serialization field
 			SerializationField field = metadata.getFields().get(fname);
 			
+			//Check if field has authority to write the value (from @SerializationAccess(writable (bool))
+			if(!field.isWriteable()) {
+				continue;
+			}
+			
+			//Check if the current field is not an object
 			if(!ifInnerObjectCallJsonObjectToObject(jsonAttribute, object, field)) {
 				try {
-					field.setValueFromSetMethodOrField(object, jsonAttribute.getValue().getOriginalValue());
+					field.setValueFromSetMethodOrField(object, adaptJsonValueToObjectField(jsonAttribute.getValue(), field.getField()));
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 					throw new RuntimeException(e);
 				}
 			}
+		}
+	}
+	
+	private static Object adaptJsonValueToObjectField(JsonValue value, Field targetField) {
+		if(targetField.getType().equals(String.class)) {
+			return value.asString();
+		}else {
+			return value.getOriginalValue();
 		}
 	}
 	
@@ -122,34 +135,40 @@ public class JsonSerializer{
 		
 			
 			//Check if the serialization parameters has specific fields to serialize
-			if(parameters.hasFields()) {
+			if(parameters.isParametrized()) {
 				//Check if is on include mode and the current field is not included
 				if(parameters.getType() == JsonFieldAccesTypes.INCLUDE) {
-					if(!parameters.getFields().contains(fname)) {
+					if(!parameters.containsField(fname)) {
 						continue;
 					}
 				}else {
-					if(parameters.getFields().contains(fname)) {
+					if(parameters.containsField(fname)) {
 						continue;
 					}
 				}
 			}
 			
-			//Check in the JsonClassMetadata if the field has authority to read. The authority is defined
+			//Get serialization field form metadata
+			SerializationField field = metadata.getFields().get(fname);
+			
+			//Check in the ClassMetadata if the field has authority to read. The authority is defined
 			//by the @SerializationAccess(read (boolean)) annotation
-			if(ClassMetadataContext.get(object.getClass()).getDeniedReadFields().contains(fname)) {
+			if(!field.isReadable() && !field.isAccessible()) {
 				continue;
 			}
 			
 			//Try to read the value
 			try {
-				fvalue = metadata.getFields().get(fname).getValueFromGetMethodOrField(object);
+				fvalue = field.getValueFromGetMethodOrField(object);
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 				throw new UnreadableFieldException(e);
 			}
 			
-			System.out.println("value of " + fname + " is: " + fvalue);
-			
+			//If the object is from Object type call this method recursively
+			if(fvalue != null && !JsonValue.isJsonRawData(fvalue)) {
+				fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
+			}
+						
 			//Create the json attribute with the field name and value
 			jsonObject.addAttribute(fname, new JsonValue(fvalue));
 			

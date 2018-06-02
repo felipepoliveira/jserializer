@@ -8,7 +8,28 @@ public class JsonSerializationParameters {
 	
 	private Set<String> fields = new HashSet<>(5);
 	
-	private JsonFieldAccesTypes type = JsonFieldAccesTypes.INCLUDE;
+	private JsonFieldAccesTypes type = null;
+	
+	public JsonSerializationParameters createParametersDerivedFrom(String field) {
+		JsonSerializationParameters parameters = new JsonSerializationParameters();
+		
+		//Pass this type to the internal parameters
+		parameters.setType(this.type);
+		
+		for (String thisField : fields) {
+			//Check if the field starts with the given field name and a field separator '.'
+			if(thisField.startsWith(field + ".")) {
+				//Add the field removing the first prefix
+				parameters.fields.add(thisField.substring(field.length() + 1, thisField.length()));
+			}
+		}
+		
+		return parameters;
+	}
+	
+	public boolean isParametrized() {
+		return this.type != null;
+	}
 	
 	
 	public boolean hasFields() {
@@ -34,6 +55,16 @@ public class JsonSerializationParameters {
 	
 	public void setType(JsonFieldAccesTypes type) {
 		this.type = type;
+	}
+	
+	public boolean containsField(String field) {
+		for (String thisFields : fields) {
+			if(field.equals(thisFields) || thisFields.startsWith(field + ".")) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 
 }

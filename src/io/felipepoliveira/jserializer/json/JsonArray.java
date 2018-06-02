@@ -37,6 +37,12 @@ public class JsonArray implements JsonStructure, JsonData {
 		}
 	}
 	
+	public <T> T[] to(Class<? extends T> type) {
+		T[] objectInstance = null;
+		
+		return objectInstance;
+	}
+	
 	/**
 	 * Return the representation of an JSON Array in string [<value1>, <value2>, <value3>, ...]
 	 */

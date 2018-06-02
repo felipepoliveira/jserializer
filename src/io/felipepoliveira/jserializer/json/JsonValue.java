@@ -28,6 +28,16 @@ public class JsonValue implements JsonData {
 		setOriginalValue(value);
 	}
 	
+	public static boolean isJsonRawData(Object value) {
+		if(value.getClass().isPrimitive()) {
+			return true;
+		}else if((value instanceof Boolean) || (value instanceof Number) || (value instanceof String) || (value instanceof Date) || (value instanceof Collection)) {
+			return true;
+		}else {
+			return false;
+		}
+	}
+	
 	public static JsonValue parse(String value) throws JsonParseException {
 		//Check if is a string value
 		if(value.startsWith("\"") && value.endsWith("\"")) {
@@ -66,7 +76,7 @@ public class JsonValue implements JsonData {
 	 */
 	public String asString() {
 		try {
-			return this.originalValue.toString();
+			return this.originalValue.toString().replaceAll("\\\\\"", "\"");
 		} catch (Exception e) {
 			throw new InvalidValueCastException("The value '" + this.toString() + "' can not be cast to String");
 		}
@@ -135,6 +145,16 @@ public class JsonValue implements JsonData {
 	}
 	
 	/**
+	 * Cast the JSON value to {@link JsonArray}.
+	 * For safe use of this method, the user must check with JsonValue.isJsonArray() if the value
+	 * is, in fact, an instance of {@link JsonObject}
+	 * @return
+	 */
+	public JsonArray asJsonArray() {
+		return (JsonArray) this.originalValue;
+	}
+	
+	/**
 	 * Cast the JSON value to date. This method will consider that the current value of this
 	 * JSON value is a string in an date format.
 	 * @param format - The form
@@ -178,7 +198,7 @@ public class JsonValue implements JsonData {
 	}
 	
 	public boolean isPrimitive() {
-		return (isBoolean() || isString() || isNumeric());
+		return (this.originalValue != null && this.originalValue.getClass().isPrimitive() || isBoolean() || isString() || isNumeric());
 	}
 
 	public Object getOriginalValue() {
@@ -191,6 +211,9 @@ public class JsonValue implements JsonData {
 		if(value == null) {
 			this.originalValue = null;
 		}
+		else if (value instanceof JsonValue) {
+			this.originalValue = ((JsonValue) value).getOriginalValue();
+		}
 		else if(value instanceof JsonStructure) {
 			this.originalValue = value;
 		}
@@ -201,10 +224,7 @@ public class JsonValue implements JsonData {
 				this.originalValue = new JsonArray((Object[]) value);
 			}
 			else if ((value instanceof Collection)){
-				this.originalValue = new JsonArray((Collection<Object>) value);
-			}
-			else {
-				this.originalValue = JSerializer.json().serialize(value);
+				this.originalValue = new JsonArray(((Collection<Object>) value).toArray());
 			}
 			
 		}
@@ -212,17 +232,17 @@ public class JsonValue implements JsonData {
 
 	@Override
 	public String toString() {
-		if(isBoolean()) {
-			return ((Boolean) originalValue).toString();
-		} else if(isJsonData()) {
-			return ((JsonStructure) originalValue).toString();
-		} else if(isNumeric()) {
-			return ((Number) this.originalValue).toString();
-		} else if(isString()) {
-			return "\"" + this.originalValue + "\"";
+		if(!isNull()) {
+			if(isString()) {
+				return "\"" + originalValue.toString() + "\"";
+			}
+			else {
+				return this.originalValue.toString();
+			}
 		}else {
-			return null;
+			return "null";
 		}
+		
 	}
 	
 	

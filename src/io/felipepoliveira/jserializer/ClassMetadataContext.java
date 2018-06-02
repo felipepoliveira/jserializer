@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class ClassMetadataContext {
 	
-	public final static Map<Class<?>, ClassMetadata> metadatas = new HashMap<>();
+	private final static Map<Class<?>, ClassMetadata> metadatas = new HashMap<>();
 	
 	public static ClassMetadata get(Class<?> clazz) {
 		ClassMetadata metadata = metadatas.get(clazz);
