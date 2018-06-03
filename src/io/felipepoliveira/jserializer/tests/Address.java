@@ -25,6 +25,14 @@ public class Address {
 		this.street = street;
 	}
 	
+	public Collection<String> getUhuuul() {
+		return uhuuul;
+	}
+	
+	public void setUhuuul(Collection<String> uhuuul) {
+		this.uhuuul = uhuuul;
+	}
+	
 	
 
 }

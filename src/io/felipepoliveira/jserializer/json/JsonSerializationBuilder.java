@@ -1,5 +1,6 @@
 package io.felipepoliveira.jserializer.json;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -65,6 +66,7 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 	 * @param fields
 	 */
 	public JsonSerializationBuilder withFields(String...fields) {
+		this.parameters.setType(JsonFieldAccesTypes.INCLUDE);
 		parameters.setFields(fields);
 		
 		return this;
@@ -97,6 +99,16 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 	public JsonObject serialize(Object object) {
 		applyJfoInSerializationParameters();
 		return serializer.serialize(object, parameters);
+	}
+	
+	public JsonArray serialize(Object[] objects) {
+		applyJfoInSerializationParameters();
+		return serializer.serialize(objects, parameters);
+	}
+	
+	public JsonArray serialize(Collection<Object> objects) {
+		applyJfoInSerializationParameters();
+		return serializer.serialize(objects, parameters);
 	}
 	
 	private void applyJfoInSerializationParameters() {

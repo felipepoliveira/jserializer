@@ -4,7 +4,6 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 
-import io.felipepoliveira.jserializer.JSerializer;
 import io.felipepoliveira.jserializer.exceptions.InvalidValueCastException;
 import io.felipepoliveira.jserializer.exceptions.JsonParseException;
 
@@ -31,7 +30,7 @@ public class JsonValue implements JsonData {
 	public static boolean isJsonRawData(Object value) {
 		if(value.getClass().isPrimitive()) {
 			return true;
-		}else if((value instanceof Boolean) || (value instanceof Number) || (value instanceof String) || (value instanceof Date) || (value instanceof Collection)) {
+		}else if((value instanceof Boolean) || (value instanceof Number) || (value instanceof String) || (value instanceof Date) || (value instanceof Collection) || (value instanceof Object[])) {
 			return true;
 		}else {
 			return false;

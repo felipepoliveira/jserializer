@@ -9,14 +9,10 @@ public class Client extends People{
 	private Address address;
 	
 	@SerializationAccess(readable = false)
-	private Object[] children = new Object[5];
+	private Client[] children = new Client[5];
 	
 	public Client() {
-		children[0] = 1L;
-		children[1] = 1;
-		children[2] = new People();
-		children[3] = null;
-		children[4] = new People();
+		
 	}
 
 	public Long getRegistrationNumber() {
@@ -36,11 +32,11 @@ public class Client extends People{
 		this.address = address;
 	}
 	
-	public Object[] getChildren() {
+	public Client[] getChildren() {
 		return children;
 	}
 
-	public void setChildren(Object[] children) {
+	public void setChildren(Client[] children) {
 		this.children = children;
 	}
 }

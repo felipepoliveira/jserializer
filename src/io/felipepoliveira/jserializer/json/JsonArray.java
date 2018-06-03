@@ -1,5 +1,6 @@
 package io.felipepoliveira.jserializer.json;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -37,10 +38,25 @@ public class JsonArray implements JsonStructure, JsonData {
 		}
 	}
 	
+	/**
+	 * Put the values of this {@link JsonArray} instance into a new instance
+	 * of an given type
+	 * @param type - The type to be parsed
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
 	public <T> T[] to(Class<? extends T> type) {
-		T[] objectInstance = null;
+		//Create the instance of the object array
+		T[] objectInstances = (T[]) Array.newInstance(type, this.values.size());
 		
-		return objectInstance;
+		//Iterate over the values, converting each element as json object
+		int index = 0;
+		for (JsonValue value : this.values) {
+			objectInstances[index] = value.asJsonObject().to(type);
+			index++;
+		}
+		
+		return objectInstances;
 	}
 	
 	/**

@@ -1,7 +1,12 @@
 package io.felipepoliveira.jserializer.json;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
 
 import io.felipepoliveira.jserializer.ClassMetadata;
 import io.felipepoliveira.jserializer.ClassMetadataContext;
@@ -32,6 +37,13 @@ public class JsonSerializer{
 		}
 	}
 	
+	/**
+	 * Put all the values in an {@link JsonObject} to an {@link Object} using reflection.
+	 * The criteria used to put the values from one object to another is when the
+	 * {@link JsonValue} attribute match with the name of the {@link Field} of the {@link Object}
+	 * @param jsonObject - The JSON object with the data
+	 * @param object - The object that will receive the data
+	 */
 	public static void jsonObjectToObject(JsonObject jsonObject, Object object) {
 		
 		//Get the object metadata
@@ -56,28 +68,92 @@ public class JsonSerializer{
 				continue;
 			}
 			
-			//Check if the current field is not an object
-			if(!ifInnerObjectCallJsonObjectToObject(jsonAttribute, object, field)) {
-				try {
-					field.setValueFromSetMethodOrField(object, adaptJsonValueToObjectField(jsonAttribute.getValue(), field.getField()));
-				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-					throw new RuntimeException(e);
+			//Apply the json value into the object
+			applyValue(jsonAttribute.getValue(), object, field);
+		}
+	}
+	
+	/**
+	 * Apply an value from {@link JsonValue} to an specific {@link Field} of a object
+	 * @param value - The value to applied
+	 * @param object - The object that will receive the value
+	 * @param field - The field to put the value
+	 */
+	private static void applyValue(JsonValue value, Object object, SerializationField field) {
+		//Check if the current field is not an object
+		if(		!ifInnerObject(value, object, field) &&
+				!ifInnerArray(value, object, field) &&
+				!ifInnerCollection(value, object, field) &&
+				!ifInnerMap(value, object, field)) {
+			try {
+				//Check if the current object is not a json raw data (is a Object)
+				if(!JsonValue.isJsonRawData(object)) {
+					field.setValueFromSetMethodOrField(object, adaptJsonValueToObjectField(value, field.getField()));
 				}
+				//Otherwise, put the value from the field directly in the object
+				else {
+					object = value.getOriginalValue();
+				}
+				
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}
 	
+	private static void applyIterableValuesInArray(JsonArray jsonArray, Object[] target, Class<?> type, SerializationField field) throws InstantiationException, IllegalAccessException {
+		Iterator<JsonValue> iJsonArray = jsonArray.getValues().iterator();
+		
+		int index = -1;
+		while(iJsonArray.hasNext()) {
+			index++;
+			JsonValue jsonValue = iJsonArray.next();
+			target[index] = type.newInstance();
+			
+			applyValue(jsonValue, target[index], field);
+		}
+	}
+	
+	private static void applyIterableValuesInCollection(JsonArray jsonArray, Collection<Object> target, Class<?> type, SerializationField field) throws InstantiationException, IllegalAccessException {
+		Iterator<JsonValue> iJsonArray = jsonArray.getValues().iterator();
+		
+		while(iJsonArray.hasNext()) {
+			JsonValue jsonValue = iJsonArray.next();
+			Object targetValue = type.newInstance();
+			applyValue(jsonValue, targetValue, field);
+			target.add(targetValue);
+		}
+	}
+	
+	/**
+	 * This method adapt the value that will be applied in an given field
+	 * @param value
+	 * @param targetField
+	 * @return
+	 */
 	private static Object adaptJsonValueToObjectField(JsonValue value, Field targetField) {
-		if(targetField.getType().equals(String.class)) {
+		//If the value is a String, call the JsonValue.asString() method to remove the escaped characters
+		if(!value.isNull() && String.class.isAssignableFrom(targetField.getType())) {
 			return value.asString();
-		}else {
+		}
+		//If is not an special case, get the original value directly
+		else {
 			return value.getOriginalValue();
 		}
 	}
 	
-	private static boolean ifInnerObjectCallJsonObjectToObject(JsonAttribute jsonAttribute, Object object, SerializationField field) {
+	/**
+	 * Check if he current {@link JsonValue} and the {@link SerializationField} of an {@link Object} is
+	 * a inner object. If it is, make an internal instance of this object to attribute the values of
+	 * the {@link JsonValue} in it
+	 * @param jsonValue - The current {@link JsonValue}. This value should be an object.
+	 * @param object - The object owner of the field to be defined. This object must not be an JSON raw data
+	 * @param field - The field that will receive the value from the {@link JsonValue}
+	 * @return Flag indicating if the current field is or not an object
+	 */
+	private static boolean ifInnerObject(JsonValue jsonValue, Object object, SerializationField field) {
 		//Check if the attribute is a object and the field is not primitive
-		if(jsonAttribute.getValue().isJsonObject() && !field.getField().getType().isPrimitive()) {
+		if(jsonValue.isJsonObject() && !JsonValue.isJsonRawData(object)) {
 			
 				
 			//Get the field value
@@ -91,7 +167,9 @@ public class JsonSerializer{
 			if(fieldValue == null) {
 				try {
 					fieldValue = field.getField().getType().newInstance();
-					field.setValueFromSetMethodOrField(object, fieldValue);
+						field.setValueFromSetMethodOrField(object, fieldValue);
+					
+					
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
 						| InstantiationException e) {
 					throw new RuntimeException("Can not make an internal instance of " + object.getClass().getSimpleName() + "." + field.getField().getName());
@@ -100,13 +178,96 @@ public class JsonSerializer{
 			}
 			
 			//Call the recursive method
-			jsonObjectToObject(jsonAttribute.getValue().asJsonObject(), fieldValue);
+			jsonObjectToObject(jsonValue.asJsonObject(), fieldValue);
 			
 			return true;
 		}
 		
 		return false;
 	}
+	
+	private static boolean ifInnerArray(JsonValue jsonValue, Object object, SerializationField field) {
+		
+		if(jsonValue.isJsonArray() && field.getField().getType().isArray()) {
+			System.out.println("Array detected");
+			
+			//Get the value as JsonArray
+			JsonArray jsonArray = jsonValue.asJsonArray();
+			
+			//Get the array type
+			Class<?> arrayType = field.getField().getType().getComponentType();
+			
+			//Create an instance of the inner array
+			try {
+				field.setValueFromSetMethodOrField(object, Array.newInstance(arrayType, jsonArray.getValues().size()));
+				//Get each element in JsonArray and apply it on each element in the object
+				applyIterableValuesInArray(jsonArray, (Object[]) field.getValueFromGetMethodOrField(object), arrayType, field);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+					| NegativeArraySizeException | InstantiationException e) {
+				throw new RuntimeException(e);
+			}
+			
+			
+			
+			return true;
+		}else {
+			return false;
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static boolean ifInnerCollection(JsonValue jsonValue, Object object, SerializationField field) {
+		
+			
+		if(jsonValue.isJsonArray() && Collection.class.isAssignableFrom(field.getField().getType())) {
+			System.out.println("Collection detected");
+			
+			
+			//Get the generic type inside the collection type
+			String genericCollectionTypeName = field.getField().getGenericType().toString();
+			
+			//if the colleciton does not have a generic type declared, it will be ignored because it can't be self instantiated
+			if(!genericCollectionTypeName.contains("<")) {
+				return false;
+			}
+			
+			//get the generic type by class name
+			genericCollectionTypeName = genericCollectionTypeName.substring(genericCollectionTypeName.indexOf("<") + 1, genericCollectionTypeName.indexOf(">"));
+			Class<?> collectionType = null;
+			try {
+				 collectionType = Class.forName(genericCollectionTypeName);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException("The type " + genericCollectionTypeName + " of the collection " + field.getField() + " was not found");
+			}
+			
+			//Get the value as JsonArray
+			JsonArray jsonArray = jsonValue.asJsonArray();
+			
+			
+			try {
+				field.setValueFromSetMethodOrField(object, new ArrayList<>());
+				applyIterableValuesInCollection(jsonArray, (Collection<Object>)field.getValueFromGetMethodOrField(object), collectionType, field);
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				throw new RuntimeException(e);
+			}
+			
+			return true;
+		}
+		else {
+			return false;
+		}
+		
+	}
+	
+	private static boolean ifInnerMap(JsonValue jsonValue, Object object, SerializationField field) {
+		if(field.getField().getType().equals(Map.class)) {
+			System.out.println("Map detected");
+			return true;
+		}else {
+			return false;
+		}
+	}
+	
 	
 	/**
 	 * Parse an given JSON string to an {@link JsonStructure} instance. The instance can be of a
@@ -122,6 +283,28 @@ public class JsonSerializer{
 	public JfoObject parseJfo(String jfo) {
 		return new JfoObject(parser.parse(jfo).asJsonObject());
 	}
+	
+	public JsonArray serialize(Object[] objects, JsonSerializationParameters parameters) {
+		JsonArray jsonArray = new JsonArray();
+		
+		//Get each object from the array, serialize it and add in array
+		for (Object object : objects) {
+			jsonArray.addValue(serialize(object, parameters));
+		}
+		
+		return jsonArray;
+	}
+	
+	public JsonArray serialize(Collection<Object> objects, JsonSerializationParameters parameters) {
+		JsonArray jsonArray = new JsonArray();
+		
+		//Get each object from the array, serialize it and add in array
+		for (Object object : objects) {
+			jsonArray.addValue(serialize(object, parameters));
+		}
+		
+		return jsonArray;
+	}
 
 	public JsonObject serialize(Object object, JsonSerializationParameters parameters) {
 		JsonObject jsonObject = new JsonObject();
@@ -135,7 +318,7 @@ public class JsonSerializer{
 		
 			
 			//Check if the serialization parameters has specific fields to serialize
-			if(parameters.isParametrized()) {
+			if(parameters.hasFields()) {
 				//Check if is on include mode and the current field is not included
 				if(parameters.getType() == JsonFieldAccesTypes.INCLUDE) {
 					if(!parameters.containsField(fname)) {
