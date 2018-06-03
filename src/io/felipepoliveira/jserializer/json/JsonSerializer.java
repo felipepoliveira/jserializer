@@ -268,6 +268,14 @@ public class JsonSerializer{
 		}
 	}
 	
+	private static boolean isArray(SerializationField field) {
+		return (field.getField().getType().isArray());
+	}
+	
+	private static boolean isCollection(SerializationField field) {
+		return (Collection.class.isAssignableFrom(field.getField().getType())); 
+	}
+	
 	
 	/**
 	 * Parse an given JSON string to an {@link JsonStructure} instance. The instance can be of a
@@ -306,6 +314,7 @@ public class JsonSerializer{
 		return jsonArray;
 	}
 
+	@SuppressWarnings("unchecked")
 	public JsonObject serialize(Object object, JsonSerializationParameters parameters) {
 		JsonObject jsonObject = new JsonObject();
 		
@@ -336,7 +345,7 @@ public class JsonSerializer{
 			
 			//Check in the ClassMetadata if the field has authority to read. The authority is defined
 			//by the @SerializationAccess(read (boolean)) annotation
-			if(!field.isReadable() && !field.isAccessible()) {
+			if(!field.isReadable() || !field.isAccessible()) {
 				continue;
 			}
 			
@@ -348,9 +357,50 @@ public class JsonSerializer{
 			}
 			
 			//If the object is from Object type call this method recursively
-			if(fvalue != null && !JsonValue.isJsonRawData(fvalue)) {
-				fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
+//			if(fvalue != null && !JsonValue.isJsonRawData(fvalue)) {
+//				fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
+//			}
+			
+			
+			if(fvalue != null) {
+				
+				//Check if is an collection
+				if(isArray(field) || isCollection(field)) {
+					JsonArray jsonArray = new JsonArray();
+					//Check if is array
+					if(isArray(field)) {
+						for(Object collectionValue : (Object[]) fvalue) {
+							
+							if(!JsonValue.isJsonRawData(collectionValue)) {
+								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname)));
+							}else {
+								jsonArray.addValue(fvalue);
+							}
+							
+						}
+					}
+					//Check if collection
+					else {
+						for(Object collectionValue : (Collection<Object>) fvalue) {
+							if(!JsonValue.isJsonRawData(collectionValue)) {
+								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname)));
+							}else {
+								jsonArray.addValue(fvalue);
+							}
+						}
+					}
+					
+					fvalue = jsonArray;
+				}
+				//If is not a collection or array
+				else {
+					if(!JsonValue.isJsonRawData(fvalue)) {
+						fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
+					}
+				}
 			}
+			
+			
 						
 			//Create the json attribute with the field name and value
 			jsonObject.addAttribute(fname, new JsonValue(fvalue));

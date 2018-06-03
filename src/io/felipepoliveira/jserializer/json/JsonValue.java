@@ -168,6 +168,15 @@ public class JsonValue implements JsonData {
 		}
 	}
 	
+	
+	public Date asDate() {
+		try {
+			return (Date) this.originalValue;
+		} catch (Exception e) {
+			throw new InvalidValueCastException("The value '" + this.toString() + "' can not be cast to date");
+		}
+	}
+	
 	public boolean isNull() {
 		return (this.originalValue == null);
 	}
@@ -194,6 +203,10 @@ public class JsonValue implements JsonData {
 	
 	public boolean isString() {
 		return (this.originalValue != null && (this.originalValue instanceof String));
+	}
+	
+	public boolean isDate() {
+		return (this.originalValue != null && (this.originalValue instanceof Date));
 	}
 	
 	public boolean isPrimitive() {
@@ -234,6 +247,9 @@ public class JsonValue implements JsonData {
 		if(!isNull()) {
 			if(isString()) {
 				return "\"" + originalValue.toString() + "\"";
+			}
+			if(isDate()) {
+				return String.valueOf(asDate().getTime());
 			}
 			else {
 				return this.originalValue.toString();
