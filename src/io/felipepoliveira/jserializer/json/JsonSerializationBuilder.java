@@ -101,12 +101,12 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 		return serializer.serialize(object, parameters);
 	}
 	
-	public JsonArray serialize(Object[] objects) {
+	public JsonArray serializeArray(Object[] objects) {
 		applyJfoInSerializationParameters();
 		return serializer.serialize(objects, parameters);
 	}
 	
-	public JsonArray serialize(Collection<Object> objects) {
+	public JsonArray serializeCollection(Collection<Object> objects) {
 		applyJfoInSerializationParameters();
 		return serializer.serialize(objects, parameters);
 	}
