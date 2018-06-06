@@ -4,6 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 public class SerializationField {
 	
@@ -70,7 +71,7 @@ public class SerializationField {
 	}
 	
 	public boolean isAccessible() {
-		return (field.isAccessible() || getMethod != null && getMethod.isAccessible());
+		return (Modifier.isPublic(field.getModifiers()) || getMethod != null && Modifier.isPublic(getMethod.getModifiers()));
 	}
 	
 	public boolean isRawData() {
