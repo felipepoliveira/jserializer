@@ -96,8 +96,20 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 		return serializer.parse(json);
 	}
 	
-	public JsonObject serialize(Object object) {
+	@SuppressWarnings("unchecked")
+	public JsonStructure serialize(Object object) {
 		applyJfoInSerializationParameters();
+		
+		if(object instanceof Object[]) {
+			return serializer.serialize((Object[]) object, parameters);
+		}else if (object instanceof Collection) {
+			return serializer.serialize((Collection<Object>) object, parameters);
+		}else {
+			return serializer.serialize(object, parameters);
+		}
+	}
+	
+	public JsonObject serializeObject(Object object) {
 		return serializer.serialize(object, parameters);
 	}
 	

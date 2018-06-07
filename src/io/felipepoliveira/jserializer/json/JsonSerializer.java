@@ -31,8 +31,8 @@ public class JsonSerializer{
 	
 	public JsonSerializer() {
 		try {
-			parser = JsonSerializer.jsonParserType.newInstance();
-		} catch (InstantiationException | IllegalAccessException e) {
+			parser = JsonSerializer.jsonParserType.getConstructor().newInstance();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			throw new ClassCastException("Invalid JsonParser type used: " + jsonParserType);
 		}
 	}
@@ -101,25 +101,52 @@ public class JsonSerializer{
 		}
 	}
 	
-	private static void applyIterableValuesInArray(JsonArray jsonArray, Object[] target, Class<?> type, SerializationField field) throws InstantiationException, IllegalAccessException {
+	/**
+	 * Get each value from an {@link JsonArray} and apply it in an given object array.
+	 * This object array must have the same number of elements of the given {@link JsonArray}.<br/>
+	 * @param jsonArray - The JSON Array with the values
+	 * @param target - The object[] that will receive the values
+	 * @param type - The type of object to be self instantiated (with reflection) in the array
+	 * @param field - In witch field the array must be applied
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 */
+	private static void applyIterableValuesInArray(JsonArray jsonArray, Object[] target, Class<?> type, SerializationField field) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		Iterator<JsonValue> iJsonArray = jsonArray.getValues().iterator();
 		
 		int index = -1;
 		while(iJsonArray.hasNext()) {
 			index++;
 			JsonValue jsonValue = iJsonArray.next();
-			target[index] = type.newInstance();
+			target[index] = type.getConstructor().newInstance();
 			
 			applyValue(jsonValue, target[index], field);
 		}
 	}
 	
-	private static void applyIterableValuesInCollection(JsonArray jsonArray, Collection<Object> target, Class<?> type, SerializationField field) throws InstantiationException, IllegalAccessException {
+	/**
+	 * Get each value from an {@link JsonArray} and apply it in an given collection of objects.
+	 * @param jsonArray - The JSON Array with the values
+	 * @param target - The Collection that will receive the values
+	 * @param type - The type of object to be self instantiated (with reflection) in the array
+	 * @param field - In witch field the array must be applied
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 */
+	private static void applyIterableValuesInCollection(JsonArray jsonArray, Collection<Object> target, Class<?> type, SerializationField field) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		Iterator<JsonValue> iJsonArray = jsonArray.getValues().iterator();
 		
 		while(iJsonArray.hasNext()) {
 			JsonValue jsonValue = iJsonArray.next();
-			Object targetValue = type.newInstance();
+			Object targetValue = type.getConstructor().newInstance();
 			applyValue(jsonValue, targetValue, field);
 			target.add(targetValue);
 		}
@@ -166,12 +193,12 @@ public class JsonSerializer{
 			//if field is null, make a new instance
 			if(fieldValue == null) {
 				try {
-					fieldValue = field.getField().getType().newInstance();
+					fieldValue = field.getField().getType().getConstructor().newInstance();
 						field.setValueFromSetMethodOrField(object, fieldValue);
 					
 					
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
-						| InstantiationException e) {
+						| InstantiationException | NoSuchMethodException | SecurityException e) {
 					throw new RuntimeException("Can not make an internal instance of " + object.getClass().getSimpleName() + "." + field.getField().getName());
 				}
 
@@ -186,6 +213,15 @@ public class JsonSerializer{
 		return false;
 	}
 	
+	/**
+	 * Check if he current {@link JsonValue} and the {@link SerializationField} of an {@link Object} is
+	 * a inner Array. If it is, make an internal instance of this array to attribute the values of
+	 * the {@link JsonValue} in it
+	 * @param jsonValue - The current {@link JsonValue}. This value should be an object.
+	 * @param object - The object owner of the field to be defined. This object must not be an JSON raw data
+	 * @param field - The field that will receive the value from the {@link JsonValue}
+	 * @return Flag indicating if the current field is or not an object
+	 */
 	private static boolean ifInnerArray(JsonValue jsonValue, Object object, SerializationField field) {
 		
 		if(jsonValue.isJsonArray() && field.getField().getType().isArray()) {
@@ -203,11 +239,9 @@ public class JsonSerializer{
 				//Get each element in JsonArray and apply it on each element in the object
 				applyIterableValuesInArray(jsonArray, (Object[]) field.getValueFromGetMethodOrField(object), arrayType, field);
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
-					| NegativeArraySizeException | InstantiationException e) {
+					| NegativeArraySizeException | InstantiationException | NoSuchMethodException | SecurityException e) {
 				throw new RuntimeException(e);
 			}
-			
-			
 			
 			return true;
 		}else {
@@ -247,7 +281,7 @@ public class JsonSerializer{
 			try {
 				field.setValueFromSetMethodOrField(object, new ArrayList<>());
 				applyIterableValuesInCollection(jsonArray, (Collection<Object>)field.getValueFromGetMethodOrField(object), collectionType, field);
-			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 				throw new RuntimeException(e);
 			}
 			

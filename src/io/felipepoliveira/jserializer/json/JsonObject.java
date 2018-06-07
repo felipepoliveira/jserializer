@@ -1,5 +1,6 @@
 package io.felipepoliveira.jserializer.json;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -44,8 +45,8 @@ public class JsonObject implements JsonStructure, JsonData {
 	public <T> T to(Class<? extends T> type) {
 		T objectInstance = null;
 		try {
-			objectInstance = type.newInstance();
-		} catch (InstantiationException | IllegalAccessException e) {
+			objectInstance = type.getConstructor().newInstance();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			throw new RuntimeException(e);
 		}
 		
