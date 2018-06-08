@@ -30,7 +30,7 @@ public class JsonValue implements JsonData {
 	public static boolean isJsonRawData(Object value) {
 		if(value.getClass().isPrimitive()) {
 			return true;
-		}else if((value instanceof Boolean) || (value instanceof Number) || (value instanceof String) || (value instanceof Date) || (value instanceof Collection) || (value instanceof Object[])) {
+		}else if((value instanceof Boolean) || (value instanceof Number) || (value instanceof String) || (value instanceof Date) || (value instanceof Collection) || (value instanceof Object[]) || (value.getClass().isEnum())) {
 			return true;
 		}else {
 			return false;
@@ -209,6 +209,10 @@ public class JsonValue implements JsonData {
 		return (this.originalValue != null && (this.originalValue instanceof Date));
 	}
 	
+	public boolean isEnum() {
+		return (this.originalValue != null && (this.originalValue.getClass().isEnum()));
+	}
+	
 	public boolean isPrimitive() {
 		return (this.originalValue != null && this.originalValue.getClass().isPrimitive() || isBoolean() || isString() || isNumeric());
 	}
@@ -245,15 +249,13 @@ public class JsonValue implements JsonData {
 	@Override
 	public String toString() {
 		if(!isNull()) {
-			if(isString()) {
+			if(isString() || isEnum()) {
 				return "\"" + originalValue.toString() + "\"";
 			}
 			if(isDate()) {
 				return String.valueOf(asDate().getTime());
 			}
-			else {
-				return this.originalValue.toString();
-			}
+			return this.originalValue.toString();
 		}else {
 			return "null";
 		}
