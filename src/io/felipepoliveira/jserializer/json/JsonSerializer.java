@@ -10,6 +10,7 @@ import java.util.Map;
 
 import io.felipepoliveira.jserializer.ClassMetadata;
 import io.felipepoliveira.jserializer.ClassMetadataContext;
+import io.felipepoliveira.jserializer.JSerializer;
 import io.felipepoliveira.jserializer.SerializationField;
 import io.felipepoliveira.jserializer.exceptions.JsonParseException;
 import io.felipepoliveira.jserializer.exceptions.UnreadableFieldException;
@@ -80,6 +81,7 @@ public class JsonSerializer{
 	 * @param field - The field to put the value
 	 */
 	private static void applyValue(JsonValue value, Object object, SerializationField field) {
+		
 		//Check if the current field is not an object
 		if(		!ifInnerObject(value, object, field) &&
 				!ifInnerArray(value, object, field) &&
@@ -99,6 +101,17 @@ public class JsonSerializer{
 				throw new RuntimeException(e);
 			}
 		}
+	}
+	
+	private static boolean fieldValueMustBeIgnored(Object sourceObject, Object fieldValue) {
+		//Check for possible recursion problems
+		if(	JSerializer.configuration().isIgnoringCycleSerializationField() && 
+			sourceObject == fieldValue) {
+			return true;
+		}
+		
+		//If any possible errors is detected
+		return false;
 	}
 	
 	/**
@@ -358,7 +371,6 @@ public class JsonSerializer{
 		
 		//Get all fields from the object class (including from the superclasses...)
 		for (String fname : metadata.getFields().keySet()) {
-		
 			
 			//Check if the serialization parameters has specific fields to serialize
 			if(parameters.hasFields()) {
@@ -398,6 +410,11 @@ public class JsonSerializer{
 			
 			if(fvalue != null) {
 				
+				//Skip the current field if the value que can applied
+				if(fieldValueMustBeIgnored(object, fvalue)) {
+					continue;
+				}
+				
 				//Check if is an collection
 				if(isArray(field) || isCollection(field)) {
 					JsonArray jsonArray = new JsonArray();
@@ -432,6 +449,10 @@ public class JsonSerializer{
 						fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
 					}
 				}
+			}
+			//If the value is null, check if null value is being values
+			else if(parameters.isIgnoringNullFields()) {
+				continue;
 			}
 			
 			

@@ -10,6 +10,16 @@ public class JsonSerializationParameters {
 	
 	private JsonFieldAccesTypes type = null;
 	
+	private boolean ignoringNullFields = false;
+	
+	public boolean isIgnoringNullFields() {
+		return ignoringNullFields;
+	}
+
+	public void setIgnoringNullFields(boolean ignoringNullFields) {
+		this.ignoringNullFields = ignoringNullFields;
+	}
+
 	public JsonSerializationParameters createParametersDerivedFrom(String field) {
 		JsonSerializationParameters parameters = new JsonSerializationParameters();
 		
