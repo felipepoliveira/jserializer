@@ -315,12 +315,16 @@ public class JsonSerializer{
 		}
 	}
 	
-	private static boolean isArray(SerializationField field) {
-		return (field.getField().getType().isArray());
+	private static boolean isArray(Class<?> type) {
+		return (type.isArray());
 	}
 	
-	private static boolean isCollection(SerializationField field) {
-		return (Collection.class.isAssignableFrom(field.getField().getType())); 
+	private static boolean isCollection(Class<?> type) {
+		return (Collection.class.isAssignableFrom(type)); 
+	}
+	
+	private static boolean isMap(Class<?> type) {
+		return (Map.class.isAssignableFrom(type));
 	}
 	
 	
@@ -344,7 +348,13 @@ public class JsonSerializer{
 		
 		//Get each object from the array, serialize it and add in array
 		for (Object object : objects) {
-			jsonArray.addValue(serialize(object, parameters));
+			if(JsonValue.isJsonRawData(object)) {
+				jsonArray.addValue(object);
+			}
+			else {
+				jsonArray.addValue(serialize(object, parameters));
+			}
+			
 		}
 		
 		return jsonArray;
@@ -355,7 +365,12 @@ public class JsonSerializer{
 		
 		//Get each object from the array, serialize it and add in array
 		for (Object object : objects) {
-			jsonArray.addValue(serialize(object, parameters));
+			if(JsonValue.isJsonRawData(object)) {
+				jsonArray.addValue(object);
+			}
+			else {
+				jsonArray.addValue(serialize(object, parameters));
+			}
 		}
 		
 		return jsonArray;
@@ -402,11 +417,6 @@ public class JsonSerializer{
 				throw new UnreadableFieldException(e);
 			}
 			
-			//If the object is from Object type call this method recursively
-//			if(fvalue != null && !JsonValue.isJsonRawData(fvalue)) {
-//				fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
-//			}
-			
 			
 			if(fvalue != null) {
 				
@@ -415,40 +425,23 @@ public class JsonSerializer{
 					continue;
 				}
 				
-				//Check if is an collection
-				if(isArray(field) || isCollection(field)) {
-					JsonArray jsonArray = new JsonArray();
-					//Check if is array
-					if(isArray(field)) {
-						for(Object collectionValue : (Object[]) fvalue) {
-							
-							if(!JsonValue.isJsonRawData(collectionValue)) {
-								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname)));
-							}else {
-								jsonArray.addValue(fvalue);
-							}
-							
-						}
-					}
-					//Check if collection
-					else {
-						for(Object collectionValue : (Collection<Object>) fvalue) {
-							if(!JsonValue.isJsonRawData(collectionValue)) {
-								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname)));
-							}else {
-								jsonArray.addValue(fvalue);
-							}
-						}
-					}
+				//if is an array, serialize the field value as an array
+				if(isArray(field.getField().getType())) {
+					fvalue = serialize((Object[]) fvalue, parameters);
+				}
+				//If is an collection, serialization the field as an collection
+				else if(isCollection(field.getField().getType())) {
 					
-					fvalue = jsonArray;
+					fvalue = serialize((Collection<Object>) fvalue, parameters);
+				}
+				//Check if is a map
+				else if(isMap(field.getField().getType())) {
+					fvalue = serialize((Map<Object, Object>) fvalue, parameters);
 				}
 				//If is not a collection or array
-				else {
-					if(!JsonValue.isJsonRawData(fvalue)) {
+				else if(!JsonValue.isJsonRawData(fvalue)) {
 						fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
 					}
-				}
 			}
 			//If the value is null, check if null value is being values
 			else if(parameters.isIgnoringNullFields()) {
@@ -467,5 +460,107 @@ public class JsonSerializer{
 	
 	public JsonObject serialize(Object object) {
 		return serialize(object, defaultEmptyParameters);
+	}
+	
+
+	/**
+	 * Serialize an map to an {@link JsonObject}. The key of the map will be used as identifier of the attribute
+	 * and the value of the map will be the value of the attribute
+	 * @param map
+	 * @param parameters
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public JsonObject serialize(Map<Object, Object> map, JsonSerializationParameters parameters) {
+		JsonObject jsonObject = new JsonObject();
+		
+		Object fvalue = null;
+		
+		//Get all fields from the object class (including from the superclasses...)
+		for (Object fname : map.keySet()) {
+			
+			//Check if the serialization parameters has specific fields to serialize
+			if(parameters.hasFields()) {
+				//Check if is on include mode and the current field is not included
+				if(parameters.getType() == JsonFieldAccesTypes.INCLUDE) {
+					if(!parameters.containsField(fname.toString())) {
+						continue;
+					}
+				}else {
+					if(parameters.containsField(fname.toString())) {
+						continue;
+					}
+				}
+			}
+			
+			//Get the map value
+			fvalue = map.get(fname);
+			
+			if(fvalue != null) {
+				
+				//Skip the current field if the value que can applied
+				if(fieldValueMustBeIgnored(map, fvalue)) {
+					continue;
+				}
+				
+				//Check if is an collection
+				if(isArray(fvalue.getClass()) || isCollection(fvalue.getClass())) {
+					JsonArray jsonArray = new JsonArray();
+					//Check if is array
+					if(isArray(fvalue.getClass())) {
+						for(Object collectionValue : (Object[]) fvalue) {
+							
+							if(!JsonValue.isJsonRawData(collectionValue)) {
+								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname.toString())));
+							}else {
+								jsonArray.addValue(collectionValue);
+							}
+							
+						}
+					}
+					//If the value is a collection
+					else if(isCollection(fvalue.getClass())) {
+						for(Object collectionValue : (Collection<Object>) fvalue) {
+							if(!JsonValue.isJsonRawData(collectionValue)) {
+								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname.toString())));
+							}else {
+								jsonArray.addValue(fvalue);
+							}
+						}
+					}
+					//Check if is a map
+					else {
+						for(Object mapKey : ((Map<Object, Object>) fvalue).keySet()) {
+							Object mapVal = ((Map<Object, Object>) fvalue).get(mapKey);
+							if(!JsonValue.isJsonRawData(mapVal)) {
+								jsonArray.addValue(serialize(mapVal, parameters.createParametersDerivedFrom(fname.toString())));
+							}else {
+								jsonArray.addValue(mapVal);
+							}
+						}
+					}
+					
+					fvalue = jsonArray;
+				}
+				//If is not a collection or array
+				else {
+					if(!JsonValue.isJsonRawData(fvalue)) {
+						fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname.toString()));
+					}
+				}
+			}
+			//If the value is null, check if null value is being values
+			else if(parameters.isIgnoringNullFields()) {
+				continue;
+			}
+			
+			
+						
+			//Create the json attribute with the field name and value
+			jsonObject.addAttribute(fname.toString(), new JsonValue(fvalue));
+			
+		}
+		
+		return jsonObject;
 	}
 }

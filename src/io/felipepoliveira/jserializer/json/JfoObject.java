@@ -33,7 +33,9 @@ public class JfoObject extends JsonObject{
 			fieldFilter = JfoFieldFilters.REQUIRE;
 			filteredFields = getFieldsFromAttributeAsSet(attr);
 			 
-		}else if((attr = object.getAttribute("exclude")) != null) {
+		}
+		//Or the 'exclude' field
+		else if((attr = object.getAttribute("exclude")) != null) {
 			validateFilteredFieldsAttribute(attr);
 			fieldFilter = JfoFieldFilters.EXCLUDE;
 			filteredFields = getFieldsFromAttributeAsSet(attr);
@@ -47,12 +49,6 @@ public class JfoObject extends JsonObject{
 		if(!attr.getValue().isJsonArray()) {
 			throw new JfoParseException("The filtered field attibute '"+attr.getName()+"' must be an array");
 		}
-		
-//		for (JsonValue value : attr.getValue().asJsonArray().getValues()) {
-//			if(!value.isString()) {
-//				throw new JfoParseException("Incorrect value found: '"+attr.getValue().toString()+"'.The values in the filtered field list must be an String.");
-//			}
-//		}
 	}
 	
 	private Set<String> getFieldsFromAttributeAsSet(JsonAttribute attr){

@@ -3,6 +3,7 @@ package io.felipepoliveira.jserializer.json;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import io.felipepoliveira.jserializer.SerializationBuilder;
@@ -104,7 +105,10 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 			return serializer.serialize((Object[]) object, parameters);
 		}else if (object instanceof Collection) {
 			return serializer.serialize((Collection<Object>) object, parameters);
-		}else {
+		}else if(object instanceof Map) {
+			return serializer.serialize((Map<Object, Object>) object, parameters);
+		}
+		else {
 			return serializer.serialize(object, parameters);
 		}
 	}
@@ -121,6 +125,11 @@ public class JsonSerializationBuilder implements SerializationBuilder {
 	public JsonArray serializeCollection(Collection<Object> objects) {
 		applyJfoInSerializationParameters();
 		return serializer.serialize(objects, parameters);
+	}
+	
+	public JsonObject serializeMap(Map<Object, Object> map) {
+		applyJfoInSerializationParameters();
+		return serializer.serialize(map, parameters);
 	}
 	
 	private void applyJfoInSerializationParameters() {
