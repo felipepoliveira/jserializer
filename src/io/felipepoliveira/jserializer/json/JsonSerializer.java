@@ -11,6 +11,7 @@ import java.util.Map;
 import io.felipepoliveira.jserializer.ClassMetadata;
 import io.felipepoliveira.jserializer.ClassMetadataContext;
 import io.felipepoliveira.jserializer.JSerializer;
+import io.felipepoliveira.jserializer.JSerializerLogger;
 import io.felipepoliveira.jserializer.SerializationField;
 import io.felipepoliveira.jserializer.exceptions.JsonParseException;
 import io.felipepoliveira.jserializer.exceptions.UnreadableFieldException;
@@ -107,6 +108,7 @@ public class JsonSerializer{
 		//Check for possible recursion problems
 		if(	JSerializer.configuration().isIgnoringCycleSerializationField() && 
 			sourceObject == fieldValue) {
+			JSerializerLogger.warning("Cycle field detected on " + sourceObject.getClass().getName() + "[" + fieldValue.getClass().getName() + "]. Ignoring this field.");
 			return true;
 		}
 		
