@@ -441,7 +441,7 @@ public class JsonSerializer{
 				//If is not a collection or array
 				else if(!JsonValue.isJsonRawData(fvalue)) {
 						fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname));
-					}
+				}
 			}
 			//If the value is null, check if null value is being values
 			else if(parameters.isIgnoringNullFields()) {
@@ -503,50 +503,22 @@ public class JsonSerializer{
 					continue;
 				}
 				
-				//Check if is an collection
-				if(isArray(fvalue.getClass()) || isCollection(fvalue.getClass())) {
-					JsonArray jsonArray = new JsonArray();
-					//Check if is array
-					if(isArray(fvalue.getClass())) {
-						for(Object collectionValue : (Object[]) fvalue) {
-							
-							if(!JsonValue.isJsonRawData(collectionValue)) {
-								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname.toString())));
-							}else {
-								jsonArray.addValue(collectionValue);
-							}
-							
-						}
-					}
-					//If the value is a collection
-					else if(isCollection(fvalue.getClass())) {
-						for(Object collectionValue : (Collection<Object>) fvalue) {
-							if(!JsonValue.isJsonRawData(collectionValue)) {
-								jsonArray.addValue(serialize(collectionValue, parameters.createParametersDerivedFrom(fname.toString())));
-							}else {
-								jsonArray.addValue(fvalue);
-							}
-						}
-					}
-					//Check if is a map
-					else {
-						for(Object mapKey : ((Map<Object, Object>) fvalue).keySet()) {
-							Object mapVal = ((Map<Object, Object>) fvalue).get(mapKey);
-							if(!JsonValue.isJsonRawData(mapVal)) {
-								jsonArray.addValue(serialize(mapVal, parameters.createParametersDerivedFrom(fname.toString())));
-							}else {
-								jsonArray.addValue(mapVal);
-							}
-						}
-					}
+				//if is an array, serialize the field value as an array
+				if(isArray(fvalue.getClass())) {
+					fvalue = serialize((Object[]) fvalue, parameters);
+				}
+				//If is an collection, serialization the field as an collection
+				else if(isCollection(fvalue.getClass())) {
 					
-					fvalue = jsonArray;
+					fvalue = serialize((Collection<Object>) fvalue, parameters);
+				}
+				//Check if is a map
+				else if(isMap(fvalue.getClass())) {
+					fvalue = serialize((Map<Object, Object>) fvalue, parameters);
 				}
 				//If is not a collection or array
-				else {
-					if(!JsonValue.isJsonRawData(fvalue)) {
+				else if(!JsonValue.isJsonRawData(fvalue)) {
 						fvalue = serialize(fvalue, parameters.createParametersDerivedFrom(fname.toString()));
-					}
 				}
 			}
 			//If the value is null, check if null value is being values
