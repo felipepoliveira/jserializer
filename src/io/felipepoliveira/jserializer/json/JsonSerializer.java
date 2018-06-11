@@ -429,16 +429,16 @@ public class JsonSerializer{
 				
 				//if is an array, serialize the field value as an array
 				if(isArray(field.getField().getType())) {
-					fvalue = serialize((Object[]) fvalue, parameters);
+					fvalue = serialize((Object[]) fvalue, parameters.createParametersDerivedFrom(fname));
 				}
 				//If is an collection, serialization the field as an collection
 				else if(isCollection(field.getField().getType())) {
 					
-					fvalue = serialize((Collection<Object>) fvalue, parameters);
+					fvalue = serialize((Collection<Object>) fvalue, parameters.createParametersDerivedFrom(fname));
 				}
 				//Check if is a map
 				else if(isMap(field.getField().getType())) {
-					fvalue = serialize((Map<Object, Object>) fvalue, parameters);
+					fvalue = serialize((Map<Object, Object>) fvalue, parameters.createParametersDerivedFrom(fname));
 				}
 				//If is not a collection or array
 				else if(!JsonValue.isJsonRawData(fvalue)) {
@@ -507,16 +507,16 @@ public class JsonSerializer{
 				
 				//if is an array, serialize the field value as an array
 				if(isArray(fvalue.getClass())) {
-					fvalue = serialize((Object[]) fvalue, parameters);
+					fvalue = serialize((Object[]) fvalue, parameters.createParametersDerivedFrom(fname.toString()));
 				}
 				//If is an collection, serialization the field as an collection
 				else if(isCollection(fvalue.getClass())) {
 					
-					fvalue = serialize((Collection<Object>) fvalue, parameters);
+					fvalue = serialize((Collection<Object>) fvalue, parameters.createParametersDerivedFrom(fname.toString()));
 				}
 				//Check if is a map
 				else if(isMap(fvalue.getClass())) {
-					fvalue = serialize((Map<Object, Object>) fvalue, parameters);
+					fvalue = serialize((Map<Object, Object>) fvalue, parameters.createParametersDerivedFrom(fname.toString()));
 				}
 				//If is not a collection or array
 				else if(!JsonValue.isJsonRawData(fvalue)) {
